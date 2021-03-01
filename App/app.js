@@ -8,43 +8,35 @@ global.mtqqLocalPath = process.env.MQTTLOCAL;
 
 const KEEPLIGHTONFORSECS = 30 * 1000
 
-//const STARTINGFROMHOURS = 8
-//const ENDINGATHOURS = 17
-const STARTINGFROMHOURS = process.env.STARTINGFROMHOURS
-const ENDINGATHOURS = process.env.ENDINGATHOURS
 
 
 
-
-console.log(`starting entrance lights current time ${new Date()}`)
+console.log(`starting groundfloor lights current time ${new Date()}`)
 const movementSensorsReadingStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
     mqttCluster.subscribeData('EV1527', function(content){
-        if ((content.ID==='001c4e' && content.SWITCH==='03') || content.ID==='0ce052'){
+        if ((content.ID==='0a3789' && content.SWITCH==='06')){
             console.log(content.ID);
-            subscriber.next({data:'16340250'})
+            subscriber.next({sensorId:'groundfloor'})
         }
     });
 });
 
-const sharedSensorStream = movementSensorsReadingStream.pipe(
-    filter(_ => new Date().getHours() < STARTINGFROMHOURS || new Date().getHours() >= ENDINGATHOURS),
-    share()
-    )
+const sharedSensorStream = movementSensorsReadingStream.pipe(share())
 const turnOffStream = sharedSensorStream.pipe(
     debounceTime(KEEPLIGHTONFORSECS),
-    mapTo("off"),
+    mapTo("0"),
     share()
     )
 
 const turnOnStream = sharedSensorStream.pipe(
     throttle(_ => turnOffStream),
-    mapTo("on")
+    mapTo("1024")
 )
 
 merge(turnOnStream,turnOffStream)
 .subscribe(async m => {
-    (await mqtt.getClusterAsync()).publishMessage('esp/front/door/light',m)
+    (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',m)
 })
 
 
