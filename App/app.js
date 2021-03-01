@@ -7,6 +7,7 @@ global.mtqqLocalPath = process.env.MQTTLOCAL;
 
 
 const KEEPLIGHTONFORSECS = 30 * 1000
+
 //const STARTINGFROMHOURS = 8
 //const ENDINGATHOURS = 17
 const STARTINGFROMHOURS = process.env.STARTINGFROMHOURS
