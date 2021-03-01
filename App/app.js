@@ -6,7 +6,7 @@ global.mtqqLocalPath = process.env.MQTTLOCAL;
 //global.mtqqLocalPath = 'mqtt://piscos.tk';
 
 
-const KEEPLIGHTONFORSECS = 30 * 1000
+const KEEPLIGHTONFORSECS = 10 * 1000
 
 
 
