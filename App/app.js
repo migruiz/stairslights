@@ -10,6 +10,8 @@ const KEEPLIGHTONFORSECS = 13 * 1000
 const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
 const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
 
+const NIGHTBRIGHTNESS = process.env.NIGHTBRIGHTNESS
+const DAYBRIGHTNESS = process.env.DAYBRIGHTNESS
 
 
 
@@ -37,7 +39,7 @@ const turnOffStream = sharedSensorStream.pipe(
 
 const turnOnStream = sharedSensorStream.pipe(
     throttle(_ => turnOffStream),
-    mapTo( (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? "800" : "10" )
+    mapTo( (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS )
 )
 
 merge(turnOnStream,turnOffStream)
