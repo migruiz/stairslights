@@ -6,7 +6,9 @@ global.mtqqLocalPath = process.env.MQTTLOCAL;
 //global.mtqqLocalPath = 'mqtt://piscos.tk';
 
 
-const KEEPLIGHTONFORSECS = 10 * 1000
+const KEEPLIGHTONFORSECS = 13 * 1000
+const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
+const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
 
 
 
@@ -15,9 +17,13 @@ console.log(`starting groundfloor lights current time ${new Date()}`)
 const movementSensorsReadingStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
     mqttCluster.subscribeData('EV1527', function(content){
-        if ((content.ID==='0a3789' && content.SWITCH==='06')){
+        if (
+                (content.ID==='0a3789' && content.SWITCH==='06') ||
+                (content.ID==='03e899' && content.SWITCH==='06') ||
+                (content.ID==='0b5589' && content.SWITCH==='06')
+            ){
             console.log(content.ID);
-            subscriber.next({sensorId:'groundfloor'})
+            subscriber.next({sensorId:'sensor'})
         }
     });
 });
@@ -31,7 +37,7 @@ const turnOffStream = sharedSensorStream.pipe(
 
 const turnOnStream = sharedSensorStream.pipe(
     throttle(_ => turnOffStream),
-    mapTo("1024")
+    mapTo( (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? "800" : "10" )
 )
 
 merge(turnOnStream,turnOffStream)
