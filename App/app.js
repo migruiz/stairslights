@@ -6,7 +6,7 @@ global.mtqqLocalPath = process.env.MQTTLOCAL;
 //global.mtqqLocalPath = 'mqtt://piscos.tk';
 
 
-const KEEPLIGHTONFORSECS = 13 * 1000
+const KEEPLIGHTONFORSECS = 15 * 1000
 const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
 const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
 
@@ -39,7 +39,7 @@ const turnOffStream = sharedSensorStream.pipe(
 
 const turnOnStream = sharedSensorStream.pipe(
     throttle(_ => turnOffStream),
-    mapTo( (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS )
+    map(_ => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS )
 )
 
 merge(turnOnStream,turnOffStream)
