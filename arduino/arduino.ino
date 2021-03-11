@@ -1,25 +1,43 @@
+#if defined(ESP32)
+#include <analogWrite.h>
+#endif
+
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
 #include <PubSubClient.h>
- 
+
 const char* ssid = "VM712429A";
 const char* password =  "tBhj6Hxe7abj";
 const char* mqttServer = "192.168.0.11";
 const int mqttPort = 1883;
-const char* mqttUser = "YourMqttUser";
-const char* mqttPassword = "YourMqttUserPassword";
+const char* mqttUser = "";
+const char* mqttPassword = "";
  
-WiFiClient espClient;
-PubSubClient  (espClient);
+WiFiClient wifiClient;
+PubSubClient client(wifiClient); //lib required for mqtt
+
 int pin = 2;
+int connectionTries = 0;
 
 
 void WIFI_Connect()
 {
   WiFi.disconnect();
       WiFi.begin(ssid, password);
+      Serial.print("Wifi Status:");
+      Serial.println(WiFi.status());
       while (WiFi.status() != WL_CONNECTED) {
-          delay(500);
+          delay(500);          
         Serial.println("Connecting to WiFi..");
+        connectionTries = connectionTries + 1;
+        if (connectionTries>20){
+          connectionTries = 0;
+           Serial.println("aborting connection...");
+           return;
+        }
       }
       Serial.println("Connected to the WiFi network");
 
@@ -27,7 +45,7 @@ void WIFI_Connect()
   client.setCallback(callback); 
   while (!client.connected()) {
     Serial.println("Connecting to MQTT..."); 
-    if (client.connect("ESP8266Client", mqttUser, mqttPassword )) { 
+    if (client.connect("ESPDownStairsClient", mqttUser, mqttPassword )) { 
       Serial.println("connected");   
     } else { 
       Serial.print("failed with state ");
@@ -35,14 +53,15 @@ void WIFI_Connect()
       delay(2000); 
     }
   } 
-  client.publish("esp/front/door", "Hello from ESP8266");
-  client.subscribe("esp/front/door/light");
+  client.publish("stairs/down/esp", "Hello from ESPXXX");
+  client.subscribe("stairs/down/light");
 }
 
 
 void setup() {
   pinMode(pin, OUTPUT);
-  digitalWrite(pin, HIGH); 
+  //analogWriteResolution(10);
+  analogWrite(pin, 0);
   Serial.begin(115200);
   WIFI_Connect(); 
 }
@@ -59,11 +78,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
  
   Serial.println();
   Serial.println("-----------------------");
-  if (!strncmp((char *)payload, "on", length)) {
-             digitalWrite(pin, LOW); 
-    } else if (!strncmp((char *)payload, "off", length)) {
-        digitalWrite(pin, HIGH); 
-    }
+  payload[length] = '\0'; // Make payload a string by NULL terminating it.
+   int value = atoi((char *)payload);
+  Serial.println(value);
+  //analogWriteResolution(10);
+  analogWrite(pin, value);
 }
  
 void loop() {
