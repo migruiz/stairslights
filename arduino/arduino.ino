@@ -19,7 +19,7 @@ const char* mqttPassword = "";
 WiFiClient wifiClient;
 PubSubClient client(wifiClient); //lib required for mqtt
 
-int pin = 2;
+int pin = 14;
 int connectionTries = 0;
 
 
