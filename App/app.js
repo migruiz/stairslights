@@ -22,7 +22,7 @@ const movementSensorsReadingStream = new Observable(async subscriber => {
         if (
                 (content.ID==='0a3789' && content.SWITCH==='06') ||
                 (content.ID==='03e899' && content.SWITCH==='06') ||
-                (content.ID==='0b5589' && content.SWITCH==='06')
+                (content.ID==='0606d4' && content.SWITCH==='06')
             ){
             console.log(content.ID);
             subscriber.next({sensorId:'sensor'})
