@@ -6,6 +6,10 @@ global.mtqqLocalPath = process.env.MQTTLOCAL;
 //global.mtqqLocalPath = 'mqtt://piscos.tk';
 
 
+const GROUND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0606d4'
+const FIRST_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0606d4'
+const SECOND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0606d4'
+
 const KEEPLIGHTONFORSECS = 15 * 1000
 const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
 const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
@@ -16,35 +20,44 @@ const DAYBRIGHTNESS = process.env.DAYBRIGHTNESS
 
 
 console.log(`starting groundfloor lights current time ${new Date()}`)
-const movementSensorsReadingStream = new Observable(async subscriber => {  
+
+const groundfloorSensorStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
-    mqttCluster.subscribeData('EV1527', function(content){
-        if (
-                (content.ID==='0a3789' && content.SWITCH==='06') ||
-                (content.ID==='03e899' && content.SWITCH==='06') ||
-                (content.ID==='0606d4' && content.SWITCH==='06')
-            ){
-            console.log(content.ID);
-            subscriber.next({sensorId:'sensor'})
-        }
+    mqttCluster.subscribeData(GROUND_FLOOR_SENSOR_TOPIC, function(content){        
+            subscriber.next({content})
+    });
+});
+const firstFloorSensorStream = new Observable(async subscriber => {  
+    var mqttCluster=await mqtt.getClusterAsync()   
+    mqttCluster.subscribeData(FIRST_FLOOR_SENSOR_TOPIC, function(content){        
+            subscriber.next({content})
+    });
+});
+const secondfloorSensorStream = new Observable(async subscriber => {  
+    var mqttCluster=await mqtt.getClusterAsync()   
+    mqttCluster.subscribeData(SECOND_FLOOR_SENSOR_TOPIC, function(content){        
+            subscriber.next({content})
     });
 });
 
-const sharedSensorStream = movementSensorsReadingStream.pipe(share())
-const turnOffStream = sharedSensorStream.pipe(
+
+const downstairsLightsStream = merge(groundfloorSensorStream,firstFloorSensorStream).pipe(share())
+
+const downstairsLightsOffStream = downstairsLightsStream.pipe(
     debounceTime(KEEPLIGHTONFORSECS),
-    mapTo("0"),
+    mapTo("OFF"),
     share()
     )
-
-const turnOnStream = sharedSensorStream.pipe(
-    throttle(_ => turnOffStream),
+const downstairsLightsOnStream = downstairsLightsStream.pipe(
+    throttle(_ => downstairsLightsOffStream),
     map(_ => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS )
 )
 
-merge(turnOnStream,turnOffStream)
+merge(downstairsLightsOnStream,downstairsLightsOffStream)
 .subscribe(async m => {
+    console.log('Downstairs', m)
     (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',m)
 })
+
 
 
