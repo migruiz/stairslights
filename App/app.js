@@ -6,11 +6,11 @@ global.mtqqLocalPath = process.env.MQTTLOCAL;
 //global.mtqqLocalPath = 'mqtt://piscos.tk';
 
 
-const GROUND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0606d4'
-const FIRST_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0606d4'
-const SECOND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0606d4'
+const GROUND_FLOOR_SENSOR_TOPIC = process.env.GROUND_FLOOR_SENSOR_TOPIC
+const FIRST_FLOOR_SENSOR_TOPIC = process.env.FIRST_FLOOR_SENSOR_TOPIC
+const SECOND_FLOOR_SENSOR_TOPIC = process.env.SECOND_FLOOR_SENSOR_TOPIC
 
-const KEEPLIGHTONFORSECS = 15 * 1000
+const KEEPLIGHTONFORSECS = process.env.KEEPLIGHTONFORSECS * 1000
 const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
 const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
 
@@ -19,7 +19,7 @@ const DAYBRIGHTNESS = process.env.DAYBRIGHTNESS
 
 
 
-console.log(`starting groundfloor lights current time ${new Date()}`)
+console.log(`starting stairs lights current time ${new Date()}`)
 
 const groundfloorSensorStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
@@ -60,4 +60,22 @@ merge(downstairsLightsOnStream,downstairsLightsOffStream)
 })
 
 
+
+const upstairsLightsStream = merge(secondfloorSensorStream,firstFloorSensorStream).pipe(share())
+
+const upstairsLightsOffStream = upstairsLightsStream.pipe(
+    debounceTime(KEEPLIGHTONFORSECS),
+    mapTo("0"),
+    share()
+    )
+const upstairsLightsOnStream = upstairsLightsStream.pipe(
+    throttle(_ => upstairsLightsOffStream),
+    map(_ => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS )
+)
+
+merge(upstairsLightsOnStream,upstairsLightsOffStream)
+.subscribe(async m => {
+    console.log('Upstairs', m);
+    (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
+})
 
