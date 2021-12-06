@@ -51,6 +51,8 @@ workflows:
       - publish-latest:
           requires:
             - build
+          context:
+            - DockerHub
           filters:
             branches:
               only: main
