@@ -45,7 +45,7 @@ const downstairsLightsStream = merge(groundfloorSensorStream,firstFloorSensorStr
 
 const downstairsLightsOffStream = downstairsLightsStream.pipe(
     debounceTime(KEEPLIGHTONFORSECS),
-    mapTo("OFF"),
+    mapTo("0"),
     share()
     )
 const downstairsLightsOnStream = downstairsLightsStream.pipe(
@@ -55,7 +55,7 @@ const downstairsLightsOnStream = downstairsLightsStream.pipe(
 
 merge(downstairsLightsOnStream,downstairsLightsOffStream)
 .subscribe(async m => {
-    console.log('Downstairs', m)
+    console.log('Downstairs', m);
     (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',m)
 })
 
