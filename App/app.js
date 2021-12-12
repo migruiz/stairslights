@@ -1,5 +1,5 @@
 const { Observable,merge,timer } = require('rxjs');
-const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime} = require('rxjs/operators');
+const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime, scan} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 
 //global.mtqqLocalPath = process.env.MQTTLOCAL;
@@ -10,7 +10,7 @@ const GROUND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-03e899'
 const FIRST_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-03e899'
 const SECOND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-03e899'
 
-const KEEPLIGHTONFORSECS =7 * 1000
+const KEEPLIGHTONFORSECS =15 * 1000
 const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
 const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
 
@@ -87,7 +87,27 @@ const intensityStream =  secondfloorbuttonStream.pipe(
 
 merge(upstairsSensorsStream,intensityStream, upstairsLightsOffStream)
 .pipe(
-    
+    scan( (acc, curr)=> {
+        if (acc.type=='OFF'){
+            if (curr=='INTENSITY'){
+                return { type:'OFF', lastIntensity: acc.lastIntensity + 33 }
+            }
+            if (curr=='ON'){
+                return { type:'ON', intensity: acc.lastIntensity  }
+            }
+        }
+        if (acc.type=='ON'){
+            if (curr=='INTENSITY'){
+                return { type:'ON', intensity: acc.intensity + 33 }
+            }
+            if (curr=='OFF'){
+                return { type:'OFF', lastIntensity: acc.intensity  }
+            } 
+            if (curr=='ON'){
+                return { type:'ON', intensity: acc.intensity  }
+            } 
+        }
+    }, { type:'OFF', lastIntensity:33 })
 )
 .subscribe(async m => {
     console.log('Upstairs', m);
