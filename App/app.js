@@ -50,6 +50,27 @@ const secondfloorbuttonStream = new Observable(async subscriber => {
 });
 }); 
 
+const firstfloorbuttonStream = new Observable(async subscriber => {  
+    var mqttCluster=await mqtt.getClusterAsync()   
+    mqttCluster.subscribeData('rflink/Eurodomest-2b', function(content){        
+            subscriber.next({content})
+    });
+    mqttCluster.subscribeData('rflink/EV1527a', function(content){        
+        subscriber.next({content})
+});
+}); 
+
+const groundfloorbuttonStream = new Observable(async subscriber => {  
+    var mqttCluster=await mqtt.getClusterAsync()   
+    mqttCluster.subscribeData('r444flink/Eurodomest-2b', function(content){        
+            subscriber.next({content})
+    });
+    mqttCluster.subscribeData('rfli444nk/EV1527a', function(content){        
+        subscriber.next({content})
+});
+}); 
+
+
 const downstairsLightsStream = merge(groundfloorSensorStream,firstFloorSensorStream).pipe(share())
 
 const downstairsLightsOffStream = downstairsLightsStream.pipe(
@@ -69,41 +90,55 @@ merge(downstairsLightsOnStream,downstairsLightsOffStream)
 })
 
 
-
-const upstairsSensorsStream = merge(secondfloorSensorStream,firstFloorSensorStream).pipe(
-    mapTo("ON"),
+const upstairsIntensityStream =  merge(firstfloorbuttonStream, secondfloorbuttonStream).pipe(
+    mapTo("INTENSITY_MYZONE"),
     share()
-    )
-
-const upstairsLightsOffStream = upstairsSensorsStream.pipe(
-    debounceTime(KEEPLIGHTONFORSECS),
-    mapTo("OFF"),
-    share()
-    )
-
-const intensityStream =  secondfloorbuttonStream.pipe(
-    mapTo("INTENSITY")
 )
 
-merge(upstairsSensorsStream,intensityStream, upstairsLightsOffStream)
+const notUpstairsIntensityStream =  groundfloorbuttonStream.pipe(
+    mapTo("INTENSITY_NOT_MYZONE"),
+    share()
+)
+
+
+const upstairsSensorsStream = merge(secondfloorSensorStream,firstFloorSensorStream).pipe(
+    mapTo("MOVEMENT"),
+    share()
+    )
+
+const upstairsLightsOffStream = merge(upstairsSensorsStream,upstairsIntensityStream).pipe(
+    debounceTime(KEEPLIGHTONFORSECS),
+    mapTo("NO_MOVEMENT"),
+    share()
+    )
+
+
+
+merge(upstairsSensorsStream,upstairsIntensityStream, notUpstairsIntensityStream,  upstairsLightsOffStream)
 .pipe(
     scan( (acc, curr)=> {
         if (acc.type=='OFF'){
-            if (curr=='INTENSITY'){
-                return { type:'OFF', lastIntensity: acc.lastIntensity + 33 }
+            if (curr=='INTENSITY_MYZONE'){
+                return { type:'ON', intensity: acc.lastIntensity + 33 }
             }
-            if (curr=='ON'){
+            if (curr=='INTENSITY_NOT_MYZONE'){
+                return { type:'OFF', intenslastIntensityity: acc.lastIntensity + 33 }
+            }
+            if (curr=='MOVEMENT'){
                 return { type:'ON', intensity: acc.lastIntensity  }
             }
         }
         if (acc.type=='ON'){
-            if (curr=='INTENSITY'){
+            if (curr=='INTENSITY_MYZONE'){
                 return { type:'ON', intensity: acc.intensity + 33 }
             }
-            if (curr=='OFF'){
+            if (curr=='INTENSITY_NOT_MYZONE'){
+                return { type:'ON', intensity: acc.intensity + 33 }
+            }
+            if (curr=='NO_MOVEMENT'){
                 return { type:'OFF', lastIntensity: acc.intensity  }
             } 
-            if (curr=='ON'){
+            if (curr=='MOVEMENT'){
                 return { type:'ON', intensity: acc.intensity  }
             } 
         }
