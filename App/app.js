@@ -45,15 +45,15 @@ const onStopStream = rotationSensorStream.pipe(
 )
 
 const intervalStream = onRotationStream.pipe(
-    flatMap( m => interval(10).pipe(
+    flatMap( m => interval(80).pipe(
 
         startWith(1),
         takeUntil(onStopStream),
         mapTo(m)
         )),
         scan((acc, curr) => {
-            if (curr.action==='rotate_right') return { value: acc.value + 1 } 
-            else if (curr.action==='rotate_left') return {value: acc.value - 1 }
+            if (curr.action==='rotate_right') return { value: acc.value + 10 } 
+            else if (curr.action==='rotate_left') return {value: acc.value - 10 }
             
         }, {value:0}),
         map(m=> {
