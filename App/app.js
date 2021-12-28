@@ -1,5 +1,5 @@
 const { Observable,merge,timer, interval } = require('rxjs');
-const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, flatMap, takeUntil} = require('rxjs/operators');
+const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 
 //global.mtqqLocalPath = process.env.MQTTLOCAL;
@@ -21,22 +21,10 @@ const DAYBRIGHTNESS = process.env.DAYBRIGHTNESS
 
 console.log(`starting stairs lights current time ${new Date()}`)
 
-const source = interval(20).pipe(
-    startWith(1),
-    scan((acc, curr) => {
-        if (acc.value > 500) return {value: 500, direction:'down'}
-        else if (acc.value <= 0) return {value: 1, direction:'up'}
-        else   return {value: acc.value + 10 * ( acc.direction==='up'? 1 : -1 ), direction:acc.direction}
-    }, {value:0, direction:'up'}),
-    
-    //delay(4000)
-    )
-
-
 
  const rotationCoreSensor = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
-    mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffeb064fb', function(content){        
+    mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffeb064fb', function(content){    
             subscriber.next({content})
     });
 });
@@ -45,8 +33,6 @@ const sharedRotatiobStream = rotationCoreSensor.pipe(share())
 const rotationSensorStream = sharedRotatiobStream.pipe(
     filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'),
     map( m => ({action: m.content.action})),
-    scan((acc, curr) => ((acc.action==curr.action)? acc: curr)
-    , {action:'idle'}),
     distinctUntilChanged((prev, curr) => prev.action === curr.action),
     share()
 )
@@ -60,18 +46,19 @@ const onStopStream = rotationSensorStream.pipe(
 
 const intervalStream = onRotationStream.pipe(
     flatMap( m => interval(10).pipe(
+
         startWith(1),
         takeUntil(onStopStream),
         mapTo(m)
         )),
         scan((acc, curr) => {
-            if (curr.action==='rotate_right') return { value: acc.value + 10 } 
-            else if (curr.action==='rotate_left') return {value: acc.value - 10 }
+            if (curr.action==='rotate_right') return { value: acc.value + 1 } 
+            else if (curr.action==='rotate_left') return {value: acc.value - 1 }
             
         }, {value:0}),
         map(m=> {
-            if (m.value<0) return {value:0}
-            if (m.value>500) return {value:500}
+            if (m.value<1) return {value:1}
+            if (m.value>1000) return {value:1000}
             return m
         }),
         distinctUntilChanged((prev, curr) => prev.value === curr.value)
