@@ -65,12 +65,11 @@ const intervalStream = onRotationStream.pipe(
 )
 
 intervalStream.subscribe(async val => {
-    console.log(val);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${val.value}`);
+    //console.log(val);
+    (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${val.value}`);
  });
 
 
-return;
 
 const groundfloorSensorStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
