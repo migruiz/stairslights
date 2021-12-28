@@ -1,5 +1,5 @@
 const { Observable,merge,timer, interval } = require('rxjs');
-const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct} = require('rxjs/operators');
+const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, flatMap, takeUntil} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 
 //global.mtqqLocalPath = process.env.MQTTLOCAL;
@@ -47,11 +47,37 @@ const rotationSensorStream = sharedRotatiobStream.pipe(
     map( m => ({action: m.content.action})),
     scan((acc, curr) => ((acc.action==curr.action)? acc: curr)
     , {action:'idle'}),
-    distinct()
+    distinctUntilChanged((prev, curr) => prev.action === curr.action),
+    share()
 )
 
+const onRotationStream = rotationSensorStream.pipe(
+    filter( m => m.action==='rotate_right' ||  m.action==='rotate_left')
+)
+const onStopStream = rotationSensorStream.pipe(
+    filter( m => m.action==='rotate_stop')
+)
 
-rotationSensorStream.subscribe(async val => {
+const intervalStream = onRotationStream.pipe(
+    flatMap( m => interval(10).pipe(
+        startWith(1),
+        takeUntil(onStopStream),
+        mapTo(m)
+        )),
+        scan((acc, curr) => {
+            if (curr.action==='rotate_right') return { value: acc.value + 10 } 
+            else if (curr.action==='rotate_left') return {value: acc.value - 10 }
+            
+        }, {value:0}),
+        map(m=> {
+            if (m.value<0) return {value:0}
+            if (m.value>500) return {value:500}
+            return m
+        }),
+        distinctUntilChanged((prev, curr) => prev.value === curr.value)
+)
+
+intervalStream.subscribe(async val => {
     console.log(val);
     //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${val.value}`);
  });
