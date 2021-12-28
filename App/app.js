@@ -52,15 +52,10 @@ const intervalStream = onRotationStream.pipe(
         mapTo(m)
         )),
         scan((acc, curr) => {
-            if (curr.action==='rotate_right') return { value: acc.value + 10 } 
-            else if (curr.action==='rotate_left') return {value: acc.value - 10 }
+            if (curr.action==='rotate_right') return { value: acc.value + 1 > 1000 ? 1000 : acc.value + 1 } 
+            else if (curr.action==='rotate_left') return {value: acc.value - 1 < 1 ? 1 : acc.value - 1 }
             
         }, {value:0}),
-        map(m=> {
-            if (m.value<1) return {value:1}
-            if (m.value>1000) return {value:1000}
-            return m
-        }),
         distinctUntilChanged((prev, curr) => prev.value === curr.value)
 )
 
