@@ -1,9 +1,9 @@
-const { Observable,merge,timer } = require('rxjs');
-const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime} = require('rxjs/operators');
+const { Observable,merge,timer, interval } = require('rxjs');
+const { mergeMap, map,share,filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 
-global.mtqqLocalPath = process.env.MQTTLOCAL;
-//global.mtqqLocalPath = 'mqtt://piscos.tk';
+//global.mtqqLocalPath = process.env.MQTTLOCAL;
+global.mtqqLocalPath = 'mqtt://192.168.0.11';
 
 
 const GROUND_FLOOR_SENSOR_TOPIC = process.env.GROUND_FLOOR_SENSOR_TOPIC
@@ -20,6 +20,56 @@ const DAYBRIGHTNESS = process.env.DAYBRIGHTNESS
 
 
 console.log(`starting stairs lights current time ${new Date()}`)
+
+
+ const rotationCoreSensor = new Observable(async subscriber => {  
+    var mqttCluster=await mqtt.getClusterAsync()   
+    mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffeb064fb', function(content){    
+            subscriber.next({content})
+    });
+});
+
+const sharedRotatiobStream = rotationCoreSensor.pipe(share())
+const rotationSensorStream = sharedRotatiobStream.pipe(
+    filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'),
+    map( m => ({action: m.content.action})),
+    distinctUntilChanged((prev, curr) => prev.action === curr.action),
+    share()
+)
+
+const onRotationStream = rotationSensorStream.pipe(
+    filter( m => m.action==='rotate_right' ||  m.action==='rotate_left')
+)
+const onStopStream = rotationSensorStream.pipe(
+    filter( m => m.action==='rotate_stop')
+)
+
+const intervalStream = onRotationStream.pipe(
+    flatMap( m => interval(10).pipe(
+
+        startWith(1),
+        takeUntil(onStopStream),
+        mapTo(m)
+        )),
+        scan((acc, curr) => {
+            if (curr.action==='rotate_right') return { value: acc.value + 1 } 
+            else if (curr.action==='rotate_left') return {value: acc.value - 1 }
+            
+        }, {value:0}),
+        map(m=> {
+            if (m.value<1) return {value:1}
+            if (m.value>1000) return {value:1000}
+            return m
+        }),
+        distinctUntilChanged((prev, curr) => prev.value === curr.value)
+)
+
+intervalStream.subscribe(async val => {
+    //console.log(val);
+    (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${val.value}`);
+ });
+
+
 
 const groundfloorSensorStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
@@ -78,4 +128,5 @@ merge(upstairsLightsOnStream,upstairsLightsOffStream)
     console.log('Upstairs', m);
     (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
 })
+
 
