@@ -45,7 +45,7 @@ const onStopStream = rotationSensorStream.pipe(
 )
 
 const intervalStream = onRotationStream.pipe(
-    flatMap( m => interval(80).pipe(
+    flatMap( m => interval(30).pipe(
 
         startWith(1),
         takeUntil(onStopStream),
