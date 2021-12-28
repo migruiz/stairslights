@@ -21,13 +21,23 @@ const DAYBRIGHTNESS = 10
 
 console.log(`starting stairs lights current time ${new Date()}`)
 
-
- const rotationCoreSensor = new Observable(async subscriber => {  
+const rawGroundFloorRotationSensor = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
     mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffef7f65a', function(content){    
             subscriber.next({content})
     });
 });
+
+const rawSecondFloorRotationSensor = new Observable(async subscriber => {  
+    var mqttCluster=await mqtt.getClusterAsync()   
+    mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffeb064fb', function(content){    
+            subscriber.next({content})
+    });
+});
+
+const rotationCoreSensor = merge(rawGroundFloorRotationSensor,rawSecondFloorRotationSensor).pipe(
+    filter( m => m.content.action)
+)
 
 const sharedRotatiobStream = rotationCoreSensor.pipe(share())
 
@@ -73,8 +83,8 @@ const brigthnessStream = merge(onOffStream,leftRightStream).pipe(
 )
 
 brigthnessStream.subscribe(async val => {
-    console.log(val);
-   //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${val.value}`);
+   (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${val.value}`);
+   (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${val.value}`);
  });
 
 
@@ -109,13 +119,14 @@ const downstairsLightsOffStream = downstairsLightsStream.pipe(
 const downstairsLightsOnStream = downstairsLightsStream.pipe(
     throttle(_ => downstairsLightsOffStream),
     withLatestFrom(brigthnessStream),
-    map(([_, brightness]) =>  brightness.value)
+    map(([_, brightness]) =>  brightness.value),
+    map(m => `${m}`)
 )
 
 merge(downstairsLightsOnStream,downstairsLightsOffStream)
 .subscribe(async m => {
     console.log('Downstairs', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',m)
+    (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',m)
 })
 
 
@@ -129,13 +140,15 @@ const upstairsLightsOffStream = upstairsLightsStream.pipe(
     )
 const upstairsLightsOnStream = upstairsLightsStream.pipe(
     throttle(_ => upstairsLightsOffStream),
-    map(_ => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS )
+    withLatestFrom(brigthnessStream),
+    map(([_, brightness]) =>  brightness.value),
+    map(m => `${m}`)
 )
 
 merge(upstairsLightsOnStream,upstairsLightsOffStream)
 .subscribe(async m => {
     console.log('Upstairs', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
+    (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
 })
 
 
