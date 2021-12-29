@@ -1,5 +1,5 @@
 const { Observable,merge,timer, interval } = require('rxjs');
-const { mergeMap, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray} = require('rxjs/operators');
+const { mergeMap, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 
 //global.mtqqLocalPath = process.env.MQTTLOCAL;
@@ -121,20 +121,26 @@ const brightnessOnActionStream  = brightnessActionStream.pipe(
     map(m => ({type:'brightness_action_on', value : m.value})),
     )
 
-const downstairsLightsStream = merge(groundfloorSensorStream,firstFloorSensorStream).pipe(share())
+const brightnessChangeObservable = merge(brightnessOnActionStream,brightnessOffActionStream).pipe(share())
 
-const downstairsLightsOffStream = downstairsLightsStream.pipe(
-    debounceTime(KEEPLIGHTONFORSECS),
-    mapTo({type:'movement_off'}),
-    share()
+
+const getStairsObservable = (sensorStreams) => {
+    const sharedStreams = merge(sensorStreams).pipe(share())
+
+    const lightsOffStream = sharedStreams.pipe(
+        debounceTime(KEEPLIGHTONFORSECS),
+        mapTo({type:'movement_off'}),
+        share()
+        )
+    const lightsOnStream = sharedStreams.pipe(
+        throttle(_ => lightsOffStream),
+        withLatestFrom(currenttBrigthnessStream),
+        map(([_, brightness]) =>  ({type:'movement_on', value: brightness.value})),
     )
-const downstairsLightsOnStream = downstairsLightsStream.pipe(
-    throttle(_ => downstairsLightsOffStream),
-    withLatestFrom(currenttBrigthnessStream),
-    map(([_, brightness]) =>  ({type:'movement_on', value: brightness.value})),
-)
+    return merge(lightsOnStream, lightsOffStream)
+}
 
-merge(downstairsLightsOnStream,downstairsLightsOffStream,brightnessOnActionStream,brightnessOffActionStream)
+const getMergedObservable = (o) => merge(o,brightnessChangeObservable)
 .pipe(
     scan((acc, curr) => {
         if (curr.type==='brightness_action_on') return curr        
@@ -152,28 +158,15 @@ merge(downstairsLightsOnStream,downstairsLightsOffStream,brightnessOnActionStrea
     distinctUntilChanged((prev, curr) => prev.type === curr.type && prev.value === curr.value),
 )
 
+
+getMergedObservable(getStairsObservable(merge(groundfloorSensorStream,firstFloorSensorStream)))
 .subscribe(async m => {
     console.log('Downstairs', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
+    //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
 })
 
 
-
-const upstairsLightsStream = merge(secondfloorSensorStream,firstFloorSensorStream).pipe(share())
-
-const upstairsLightsOffStream = upstairsLightsStream.pipe(
-    debounceTime(KEEPLIGHTONFORSECS),
-    mapTo("0"),
-    share()
-    )
-const upstairsLightsOnStream = upstairsLightsStream.pipe(
-    throttle(_ => upstairsLightsOffStream),
-    withLatestFrom(currenttBrigthnessStream),
-    map(([_, brightness]) =>  brightness.value),
-    map(m => `${m}`)
-)
-
-merge(upstairsLightsOnStream,upstairsLightsOffStream)
+getMergedObservable(getStairsObservable(merge(secondfloorSensorStream,firstFloorSensorStream)))
 .subscribe(async m => {
     console.log('Upstairs', m);
     //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
