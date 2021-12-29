@@ -12,12 +12,12 @@ const GROUND_FLOOR_SENSOR_TOPIC = process.env.GROUND_FLOOR_SENSOR_TOPIC
 const FIRST_FLOOR_SENSOR_TOPIC = process.env.FIRST_FLOOR_SENSOR_TOPIC
 const SECOND_FLOOR_SENSOR_TOPIC = process.env.SECOND_FLOOR_SENSOR_TOPIC
 
-const KEEPLIGHTONFORSECS = process.env.KEEPLIGHTONFORSECS * 1000
-const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
-const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
+const KEEPLIGHTONFORSECS = parseInt(process.env.KEEPLIGHTONFORSECS * 1000)
+const STARTFULLBRIGHTNESSATHOURS = parseInt(process.env.STARTFULLBRIGHTNESSATHOURS)
+const ENDFULLBRIGHTNESSATHOURS = parseInt(process.env.ENDFULLBRIGHTNESSATHOURS)
 
-const NIGHTBRIGHTNESS = process.env.NIGHTBRIGHTNESS
-const DAYBRIGHTNESS = process.env.DAYBRIGHTNESS
+const NIGHTBRIGHTNESS = parseInt(process.env.NIGHTBRIGHTNESS)
+const DAYBRIGHTNESS = parseInt(process.env.DAYBRIGHTNESS)
 
 const nightNotificationStream =  new Observable(subscriber => {      
     new CronJob(
@@ -189,14 +189,14 @@ const getMergedObservable = (o) => merge(o,brightnessChangeObservable)
 
 getMergedObservable(getStairsObservable(merge(groundfloorSensorStream,firstFloorSensorStream)))
 .subscribe(async m => {
-    console.log('Downstairs', m);
+    //console.log('Downstairs', m);
     (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
 })
 
 
 getMergedObservable(getStairsObservable(merge(secondfloorSensorStream,firstFloorSensorStream)))
 .subscribe(async m => {
-    console.log('Upstairs', m);
+    //console.log('Upstairs', m);
     (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
 })
 
