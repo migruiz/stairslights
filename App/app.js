@@ -4,20 +4,20 @@ var mqtt = require('./mqttCluster.js');
 const CronJob = require('cron').CronJob;
 
 
-//global.mtqqLocalPath = process.env.MQTTLOCAL;
-global.mtqqLocalPath = 'mqtt://192.168.0.11';
+global.mtqqLocalPath = process.env.MQTTLOCAL;
+//global.mtqqLocalPath = 'mqtt://piscos.tk';
 
 
-const GROUND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-03e899'
-const FIRST_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0a080d'
-const SECOND_FLOOR_SENSOR_TOPIC = 'rflink/EV1527-0c2ed4'
+const GROUND_FLOOR_SENSOR_TOPIC = process.env.GROUND_FLOOR_SENSOR_TOPIC
+const FIRST_FLOOR_SENSOR_TOPIC = process.env.FIRST_FLOOR_SENSOR_TOPIC
+const SECOND_FLOOR_SENSOR_TOPIC = process.env.SECOND_FLOOR_SENSOR_TOPIC
 
-const KEEPLIGHTONFORSECS = 18 * 1000
-const STARTFULLBRIGHTNESSATHOURS = 7
-const ENDFULLBRIGHTNESSATHOURS = 20
+const KEEPLIGHTONFORSECS = process.env.KEEPLIGHTONFORSECS * 1000
+const STARTFULLBRIGHTNESSATHOURS = process.env.STARTFULLBRIGHTNESSATHOURS
+const ENDFULLBRIGHTNESSATHOURS = process.env.ENDFULLBRIGHTNESSATHOURS
 
-const NIGHTBRIGHTNESS = 3
-const DAYBRIGHTNESS = 10
+const NIGHTBRIGHTNESS = process.env.NIGHTBRIGHTNESS
+const DAYBRIGHTNESS = process.env.DAYBRIGHTNESS
 
 const nightNotificationStream =  new Observable(subscriber => {      
     new CronJob(
