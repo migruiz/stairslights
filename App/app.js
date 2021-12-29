@@ -1,6 +1,8 @@
 const { Observable,merge,timer, interval } = require('rxjs');
 const { mergeMap, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
+const CronJob = require('cron').CronJob;
+
 
 //global.mtqqLocalPath = process.env.MQTTLOCAL;
 global.mtqqLocalPath = 'mqtt://192.168.0.11';
@@ -16,6 +18,30 @@ const ENDFULLBRIGHTNESSATHOURS = 20
 
 const NIGHTBRIGHTNESS = 3
 const DAYBRIGHTNESS = 10
+
+const nightNotificationStream =  new Observable(subscriber => {      
+    new CronJob(
+        `0 ${ENDFULLBRIGHTNESSATHOURS} * * *`,
+       function() {
+        subscriber.next({action:'night_time'});
+       },
+       null,
+       true,
+       'Europe/London'
+   );
+});
+const dayNotificationStream =  new Observable(subscriber => {      
+    new CronJob(
+        `0 ${STARTFULLBRIGHTNESSATHOURS} * * *`,
+       function() {
+           subscriber.next({action:'day_time'});
+       },
+       null,
+       true,
+       'Europe/London'
+   );
+});
+
 
 
 
@@ -69,8 +95,10 @@ const leftRightStream = onRotationStream.pipe(
 
 const getDefaultBrihtness = () => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS
 
-const brightnessActionStream = merge(onOffStream,leftRightStream).pipe(
+const brightnessActionStream = merge(onOffStream,leftRightStream,dayNotificationStream, nightNotificationStream).pipe(
     scan((acc, curr) => {
+        if (curr.action==='day_time') return {value:DAYBRIGHTNESS}
+        if (curr.action==='night_time') return {value:NIGHTBRIGHTNESS}
         if (curr.action==='switch_onOff') return {value:acc.value==0 ? getDefaultBrihtness() : 0}
         if (curr.action==='rotate_right') return { value: acc.value + 1 > 1000 ? 1000 : acc.value + 1 } 
         if (curr.action==='rotate_left') return {value: acc.value - 1 < 1 ? 1 : acc.value - 1 }
@@ -161,15 +189,15 @@ const getMergedObservable = (o) => merge(o,brightnessChangeObservable)
 
 getMergedObservable(getStairsObservable(merge(groundfloorSensorStream,firstFloorSensorStream)))
 .subscribe(async m => {
-    console.log('Downstairs', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
+    //console.log('Downstairs', m);
+    (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
 })
 
 
 getMergedObservable(getStairsObservable(merge(secondfloorSensorStream,firstFloorSensorStream)))
 .subscribe(async m => {
-    console.log('Upstairs', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',m)
+    //console.log('Upstairs', m);
+    (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
 })
 
 
