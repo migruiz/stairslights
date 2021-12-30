@@ -158,10 +158,8 @@ const getStairsObservable = (sensorStreams) => {
     const lightsOffStream = sharedStreams.pipe(
         debounceTime(KEEPLIGHTONFORSECS),
         mapTo({type:'movement_off'}),
-        share()
         )
     const lightsOnStream = sharedStreams.pipe(
-        throttle(_ => lightsOffStream),
         withLatestFrom(currenttBrigthnessStream),
         map(([_, brightness]) =>  ({type:'movement_on', value: brightness.value})),
     )
