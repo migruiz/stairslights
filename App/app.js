@@ -121,8 +121,10 @@ currenttBrigthnessStream.subscribe(async m => {
 
 const groundfloorSensorStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
-    mqttCluster.subscribeData(GROUND_FLOOR_SENSOR_TOPIC, function(content){        
+    mqttCluster.subscribeData('zigbee2mqtt/0x00158d000566c0cc', function(content){  
+        if (content.occupancy){      
             subscriber.next({content})
+        }
     });
 });
 const firstFloorSensorStream = new Observable(async subscriber => {  
