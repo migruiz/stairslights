@@ -4,10 +4,22 @@ var mqtt = require('./mqttCluster.js');
 const CronJob = require('cron').CronJob;
 
 
+
+global.mtqqLocalPath = 'mqtt://192.168.0.11'
+const GROUND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d000566c0cc'
+const FIRST_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0005827a38'
+const SECOND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0007c48250'
+
+const KEEPLIGHTONFORSECS = parseInt(62 * 1000)
+const STARTFULLBRIGHTNESSATHOURS = parseInt(7)
+const ENDFULLBRIGHTNESSATHOURS = parseInt(20)
+
+const NIGHTBRIGHTNESS = parseInt(1)
+const DAYBRIGHTNESS = parseInt(6)
+
+
+/*
 global.mtqqLocalPath = process.env.MQTTLOCAL;
-//global.mtqqLocalPath = 'mqtt://piscos.tk';
-
-
 const GROUND_FLOOR_SENSOR_TOPIC = process.env.GROUND_FLOOR_SENSOR_TOPIC
 const FIRST_FLOOR_SENSOR_TOPIC = process.env.FIRST_FLOOR_SENSOR_TOPIC
 const SECOND_FLOOR_SENSOR_TOPIC = process.env.SECOND_FLOOR_SENSOR_TOPIC
@@ -18,6 +30,7 @@ const ENDFULLBRIGHTNESSATHOURS = parseInt(process.env.ENDFULLBRIGHTNESSATHOURS)
 
 const NIGHTBRIGHTNESS = parseInt(process.env.NIGHTBRIGHTNESS)
 const DAYBRIGHTNESS = parseInt(process.env.DAYBRIGHTNESS)
+*/
 
 const nightNotificationStream =  new Observable(subscriber => {      
     new CronJob(
@@ -54,16 +67,64 @@ const rawGroundFloorRotationSensor = new Observable(async subscriber => {
     });
 });
 
-const rawSecondFloorRotationSensor = new Observable(async subscriber => {  
+
+
+
+
+const rotationSensor = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   
     mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffeb064fb', function(content){    
             subscriber.next({content})
     });
 });
 
+
+
+const sharedRotationSensor = rotationSensor.pipe(
+    filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'),
+    map( m => ({action: m.content.action})),
+    share()
+)
+
+
+const signalStartIncreaseSensorStream = sharedRotationSensor.pipe(
+    filter ( m => m.action === 'rotate_right'),
+    share()
+)
+
+const signalStopIncreaseSensorStream = sharedRotationSensor.pipe(
+    filter ( m => m.action==='rotate_left' || m.action==='rotate_stop')
+)
+
+const timeoutStopIncreaseStream = signalStartIncreaseSensorStream.pipe(
+    debounceTime(8 * 1000),
+    mapTo({action:'rotate_stop'}),
+    share()
+    )
+
+const fullStopStream = merge(signalStopIncreaseSensorStream,timeoutStopIncreaseStream)
+
+const startStopStream = signalStartIncreaseSensorStream.pipe(
+    flatMap( m => 
+        fullStopStream.pipe(
+            first(),
+            startWith(m)
+        )
+    )
+);
+
+startStopStream.subscribe(async m => {
+    console.log('Upstairs', m);
+    //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
+})
+
+
+
+/*
 const rotationCoreSensor = merge(rawGroundFloorRotationSensor,rawSecondFloorRotationSensor).pipe(
     filter( m => m.content.action)
 )
+
 
 const sharedRotatiobStream = rotationCoreSensor.pipe(share())
 
@@ -205,3 +266,4 @@ getMergedObservable(getStairsObservable(merge(secondfloorSensorStream,firstFloor
 })
 
 
+*/
