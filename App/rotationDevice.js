@@ -37,7 +37,7 @@ var mqtt = require('./mqttCluster.js');
     
     
     const timeoutStream = signalStartIncreaseSensorStream.pipe(
-        debounceTime(8 * 1000),
+        debounceTime(5 * 1000),
         mapTo({action:'rotate_stop'}),
         )
     
@@ -66,9 +66,18 @@ var mqtt = require('./mqttCluster.js');
         )));
 
 
+const increase = (acc)=>{
+    if (acc.value < 30){
+        return { value: acc.value + 1> 1000 ? 1000 : acc.value + 1 } 
+    }
+    else {
+        return { value: acc.value + 20 > 1000 ? 1000 : acc.value + 20 } 
+    }
+}
+
 const brightnessActionStream = increaseStream.pipe(
     scan((acc, curr) => {
-        if (curr.action==='rotate_right') return { value: acc.value + 10> 1000 ? 1000 : acc.value + 10 } 
+        if (curr.action==='rotate_right') return increase(acc)
         if (curr.action==='rotate_left') return {value: acc.value - 1 < 1 ? 1 : acc.value - 1 }
         
     }, {value:0})
