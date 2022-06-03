@@ -1,8 +1,8 @@
-const { Observable,merge,timer, interval } = require('rxjs');
-const { mergeMap, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy} = require('rxjs/operators');
+const { Observable,merge,timer, interval, of } = require('rxjs');
+const { mergeMap, first, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy, concatMap} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 const CronJob = require('cron').CronJob;
-
+const { getRotationDeviceStream } = require('./rotationDevice');
 
 
 global.mtqqLocalPath = 'mqtt://192.168.0.11'
@@ -70,51 +70,10 @@ const rawGroundFloorRotationSensor = new Observable(async subscriber => {
 
 
 
+const deviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c4314fffeb064fb')
 
-const rotationSensor = new Observable(async subscriber => {  
-    var mqttCluster=await mqtt.getClusterAsync()   
-    mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffeb064fb', function(content){    
-            subscriber.next({content})
-    });
-});
-
-
-
-const sharedRotationSensor = rotationSensor.pipe(
-    filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'),
-    map( m => ({action: m.content.action})),
-    share()
-)
-
-
-const signalStartIncreaseSensorStream = sharedRotationSensor.pipe(
-    filter ( m => m.action === 'rotate_right'),
-    share()
-)
-
-const signalStopIncreaseSensorStream = sharedRotationSensor.pipe(
-    filter ( m => m.action==='rotate_left' || m.action==='rotate_stop')
-)
-
-const timeoutStopIncreaseStream = signalStartIncreaseSensorStream.pipe(
-    debounceTime(8 * 1000),
-    mapTo({action:'rotate_stop'}),
-    share()
-    )
-
-const fullStopStream = merge(signalStopIncreaseSensorStream,timeoutStopIncreaseStream)
-
-const startStopStream = signalStartIncreaseSensorStream.pipe(
-    flatMap( m => 
-        fullStopStream.pipe(
-            first(),
-            startWith(m)
-        )
-    )
-);
-
-startStopStream.subscribe(async m => {
-    console.log('Upstairs', m);
+deviceStream.subscribe(async m => {
+    console.log('result', m);
     //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
 })
 
