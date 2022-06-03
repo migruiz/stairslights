@@ -73,9 +73,12 @@ const rawGroundFloorRotationSensor = new Observable(async subscriber => {
 const deviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c4314fffeb064fb')
 
 deviceStream.subscribe(async m => {
-    console.log('result', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
+    console.log('Downstairs', m);
+    (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
 })
+
+
+
 
 
 
