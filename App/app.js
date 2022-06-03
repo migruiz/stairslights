@@ -2,7 +2,7 @@ const { Observable,merge,timer, interval, of } = require('rxjs');
 const { mergeMap, first, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy, concatMap} = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 const CronJob = require('cron').CronJob;
-const { getRotationDeviceStream } = require('./rotationDevice');
+const { getRotationDeviceStream } = require('./rotationDevice/rotationDevice');
 
 
 global.mtqqLocalPath = 'mqtt://192.168.0.11'
