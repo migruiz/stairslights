@@ -18,7 +18,7 @@ var mqtt = require('../mqttCluster.js');
     )
     
     const signalStopIncreaseSensorStream = sharedRotationSensor.pipe(
-        filter ( m => m.action==='rotate_left' || m.action==='rotate_stop'),
+        filter ( m => m.action!=='rotate_right'),
         mapTo({action:'rotate_stop'})
     )
     

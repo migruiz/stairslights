@@ -22,7 +22,7 @@ const { getLeftRotationStream } =  require('./leftRotation')
   
   
     const sharedRotationSensor = rotationSensor.pipe(
-        filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'),
+        filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'  || m.content.action==='play_pause'),
         map( m => ({action: m.content.action})),
         share()
     )
