@@ -3,7 +3,7 @@ const { mergeMap, first, withLatestFrom, map,share,shareReplay, filter,mapTo,tak
 var mqtt = require('./mqttCluster.js');
 const CronJob = require('cron').CronJob;
 const { getRotationDeviceStream } = require('./rotationDevice/rotationDevice');
-
+const {} = require('./rotationDevice/rotationDevice')
 
 global.mtqqLocalPath = 'mqtt://192.168.0.11'
 const GROUND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d000566c0cc'
@@ -60,86 +60,6 @@ const dayNotificationStream =  new Observable(subscriber => {
 
 console.log(`starting stairs lights current time ${new Date()}`)
 
-const rawGroundFloorRotationSensor = new Observable(async subscriber => {  
-    var mqttCluster=await mqtt.getClusterAsync()   
-    mqttCluster.subscribeData('zigbee2mqtt/0x0c4314fffef7f65a', function(content){    
-            subscriber.next({content})
-    });
-});
-
-
-
-
-const deviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c4314fffeb064fb')
-
-deviceStream.subscribe(async m => {
-    console.log('Downstairs', m);
-    (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
-})
-
-
-
-
-
-
-/*
-const rotationCoreSensor = merge(rawGroundFloorRotationSensor,rawSecondFloorRotationSensor).pipe(
-    filter( m => m.content.action)
-)
-
-
-const sharedRotatiobStream = rotationCoreSensor.pipe(share())
-
-const onOffStream = sharedRotatiobStream.pipe(
-    filter( m => m.content.action==='play_pause'),
-    mapTo({action:'switch_onOff'})
-)
-
-const rotationSensorStream = sharedRotatiobStream.pipe(
-    filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'),
-    map( m => ({action: m.content.action})),
-    distinctUntilChanged((prev, curr) => prev.action === curr.action),
-    share()
-)
-
-const onRotationStream = rotationSensorStream.pipe(
-    filter( m => m.action==='rotate_right' ||  m.action==='rotate_left')
-)
-const onStopStream = rotationSensorStream.pipe(
-    filter( m => m.action==='rotate_stop')
-)
-const leftRightStream = onRotationStream.pipe(
-    flatMap( m => interval(30).pipe(
-
-        startWith(1),
-        takeUntil(onStopStream),
-        mapTo(m)
-    )));
-
-const getDefaultBrihtness = () => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS
-
-const brightnessActionStream = merge(onOffStream,leftRightStream,dayNotificationStream, nightNotificationStream).pipe(
-    scan((acc, curr) => {
-        if (curr.action==='day_time') return {value:DAYBRIGHTNESS}
-        if (curr.action==='night_time') return {value:NIGHTBRIGHTNESS}
-        if (curr.action==='switch_onOff') return {value:(acc.value==0 ? getDefaultBrihtness() : 0)}
-        if (curr.action==='rotate_right') return { value: acc.value + 1 > 1000 ? 1000 : acc.value + 1 } 
-        if (curr.action==='rotate_left') return {value: acc.value - 1 < 1 ? 1 : acc.value - 1 }
-        
-    }, {value:0}),
-    share()
-)
-
-const currenttBrigthnessStream = brightnessActionStream.pipe(
-    startWith({value:getDefaultBrihtness()}),
-    shareReplay(1)
-)
-currenttBrigthnessStream.subscribe(async m => {
-   
-    
-})
-
-
 
 
 const groundfloorSensorStream = new Observable(async subscriber => {  
@@ -169,16 +89,45 @@ const secondfloorSensorStream = new Observable(async subscriber => {
 
 
 
-const brightnessOffActionStream  = brightnessActionStream.pipe(
-    debounceTime(KEEPLIGHTONFORSECS),
-    mapTo({type:'brightness_action_off'}),
-    )
 
-const brightnessOnActionStream  = brightnessActionStream.pipe(
-    map(m => ({type:'brightness_action_on', value : m.value})),
-    )
+const downstairsRotationDeviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c4314fffeb064fb')
+const upstairsRotationDeviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c4314fffef7f65a')
 
-const brightnessChangeObservable = merge(brightnessOnActionStream,brightnessOffActionStream).pipe(share())
+
+const increase = (acc)=>{
+    if (acc.value < 20){
+        return { value: acc.value + 1 } 
+    }
+    else {
+        return { value: acc.value + 40 > 1000 ? 1000 : acc.value + 40 } 
+    }
+}
+const decrease = (acc)=>{
+    if (acc.value < 20){
+        return {value: acc.value - 1 < 1 ? 1 : acc.value - 1 }
+    }
+    else {
+        return {value: acc.value - 40 < 20 ? 20 - 1 : acc.value - 40 }
+    }
+}
+
+
+const getDefaultBrihtness = () => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS
+
+const currentBrightnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayNotificationStream, nightNotificationStream).pipe(
+    scan((acc, curr) => {
+        if (curr.action==='day_time') return {value:DAYBRIGHTNESS}
+        if (curr.action==='night_time') return {value:NIGHTBRIGHTNESS}
+        if (curr.action==='switch_onOff') return {value:(acc.value==0 ? getDefaultBrihtness() : 0)}
+        if (curr.action==='rotate_right') return increase(acc)
+        if (curr.action==='rotate_left') return decrease(acc)
+        
+    }, {value:0})
+)
+
+
+
+
 
 
 const getStairsObservable = (sensorStreams) => {
@@ -228,4 +177,3 @@ getMergedObservable(getStairsObservable(merge(secondfloorSensorStream,firstFloor
 })
 
 
-*/

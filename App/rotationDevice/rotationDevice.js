@@ -16,31 +16,8 @@ const { getLeftRotationStream } =  require('./leftRotation')
     const decreaseStream = getLeftRotationStream(topic)
 
 
-const increase = (acc)=>{
-    if (acc.value < 30){
-        return { value: acc.value + 1 } 
-    }
-    else {
-        return { value: acc.value + 40 > 1000 ? 1000 : acc.value + 40 } 
-    }
-}
-const decrease = (acc)=>{
-    if (acc.value < 30){
-        return {value: acc.value - 1 < 1 ? 1 : acc.value - 1 }
-    }
-    else {
-        return { value: acc.value - 40 } 
-    }
-}
 
-const brightnessActionStream = merge(increaseStream,decreaseStream).pipe(
-    scan((acc, curr) => {
-        if (curr.action==='rotate_right') return increase(acc)
-        if (curr.action==='rotate_left') return decrease(acc)
-        
-    }, {value:0})
-)
 
-    return brightnessActionStream;
+    return merge(increaseStream,decreaseStream);
 
 }
