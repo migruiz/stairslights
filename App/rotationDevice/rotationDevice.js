@@ -29,10 +29,12 @@ const { getLeftRotationStream } =  require('./leftRotation')
 
     const increaseStream = getRightRotationStream(sharedRotationSensor)
     const decreaseStream = getLeftRotationStream(sharedRotationSensor)
+    const toggleStream =  sharedRotationSensor.pipe(
+      filter(m => m.action==='play_pause')
+    )
 
 
 
-
-    return merge(increaseStream,decreaseStream);
+    return merge(increaseStream,decreaseStream,toggleStream);
 
 }

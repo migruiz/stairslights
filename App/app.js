@@ -95,19 +95,19 @@ const upstairsRotationDeviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c43
 
 
 const increase = (acc)=>{
-    if (acc.value < 20){
-        return { value: acc.value + 1 } 
+    if (acc < 20){
+        return  acc + 1;
     }
     else {
-        return { value: acc.value + 40 > 1000 ? 1000 : acc.value + 40 } 
+        return acc + 40 > 1000 ? 1000 : acc + 40;
     }
 }
 const decrease = (acc)=>{
-    if (acc.value < 20){
-        return {value: acc.value - 1 < 1 ? 1 : acc.value - 1 }
+    if (acc < 20){
+        return acc - 1 < 1 ? 1 : acc - 1 ;
     }
     else {
-        return {value: acc.value - 40 < 20 ? 20 - 1 : acc.value - 40 }
+        return acc - 40 < 20 ? 20 - 1 : acc - 40;
     }
 }
 
@@ -116,11 +116,11 @@ const getDefaultBrihtness = () => (new Date().getHours() > STARTFULLBRIGHTNESSAT
 
 const currenttBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayNotificationStream, nightNotificationStream).pipe(
     scan((acc, curr) => {
-        if (curr.action==='day_time') return {value:DAYBRIGHTNESS}
-        if (curr.action==='night_time') return {value:NIGHTBRIGHTNESS}
-        if (curr.action==='switch_onOff') return {value:(acc.value==0 ? getDefaultBrihtness() : 0)}
-        if (curr.action==='rotate_right') return increase(acc)
-        if (curr.action==='rotate_left') return decrease(acc)
+        if (curr.action==='day_time') return {triggeredBy:'timeOfDay', value:DAYBRIGHTNESS}
+        if (curr.action==='night_time') return {triggeredBy:'timeOfDay', value:NIGHTBRIGHTNESS}
+        if (curr.action==='play_pause') return {triggeredBy:'rotationDevice', value:(acc.value==0 ? getDefaultBrihtness() : 0)}
+        if (curr.action==='rotate_right') return {triggeredBy:'rotationDevice', value: increase(acc.value) }
+        if (curr.action==='rotate_left') return {triggeredBy:'rotationDevice', value: decrease(acc.value) }
         
     }, {value:0})
 )
