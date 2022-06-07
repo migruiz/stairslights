@@ -12,8 +12,23 @@ const { getLeftRotationStream } =  require('./leftRotation')
   module.exports.getRotationDeviceStream = function(topic) {    
     
    
-    const increaseStream = getRightRotationStream(topic)
-    const decreaseStream = getLeftRotationStream(topic)
+    const rotationSensor = new Observable(async subscriber => {  
+      var mqttCluster=await mqtt.getClusterAsync()   
+      mqttCluster.subscribeData(topic, function(content){    
+              subscriber.next({content})
+      });
+    });
+  
+  
+  
+    const sharedRotationSensor = rotationSensor.pipe(
+        filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'),
+        map( m => ({action: m.content.action})),
+        share()
+    )
+
+    const increaseStream = getRightRotationStream(sharedRotationSensor)
+    const decreaseStream = getLeftRotationStream(sharedRotationSensor)
 
 
 

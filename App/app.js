@@ -114,7 +114,7 @@ const decrease = (acc)=>{
 
 const getDefaultBrihtness = () => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS
 
-const currentBrightnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayNotificationStream, nightNotificationStream).pipe(
+const currenttBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayNotificationStream, nightNotificationStream).pipe(
     scan((acc, curr) => {
         if (curr.action==='day_time') return {value:DAYBRIGHTNESS}
         if (curr.action==='night_time') return {value:NIGHTBRIGHTNESS}
@@ -126,10 +126,14 @@ const currentBrightnessStream = merge(downstairsRotationDeviceStream,upstairsRot
 )
 
 
+currenttBrigthnessStream
+.subscribe(async m => {
+    console.log('Downstairs', m);
+    //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
+})
 
 
-
-
+/*
 const getStairsObservable = (sensorStreams) => {
     const sharedStreams = merge(sensorStreams).pipe(share())
 
@@ -177,3 +181,4 @@ getMergedObservable(getStairsObservable(merge(secondfloorSensorStream,firstFloor
 })
 
 
+*/
