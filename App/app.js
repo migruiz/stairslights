@@ -36,6 +36,18 @@ console.log(`starting stairs lights current time ${new Date()}`)
 
 
 
+const sharedDeviceStream = currenttBrigthnessStream.pipe(
+    filter(m => m.triggeredBy==='rotationDevice'),    
+    map(m =>  ({type:'manual_on', value:m.value})),
+    share()
+    )
+
+
+
+const turnOffDeviceStream = sharedDeviceStream.pipe(
+    debounceTime(60*1000),
+    mapTo({type:'manual_off', value:0}),
+    )
 
 
 
@@ -48,7 +60,11 @@ currenttBrigthnessStream
     //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
 })
 
-
+merge(sharedDeviceStream,turnOffDeviceStream)
+.subscribe(async m => {
+    console.log('actual', m);
+    //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
+})
 /*
 
 

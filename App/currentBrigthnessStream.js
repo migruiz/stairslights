@@ -36,7 +36,8 @@ const currenttBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRo
         if (curr.action==='rotate_right') return {triggeredBy:'rotationDevice', value: increase(acc.value) }
         if (curr.action==='rotate_left') return {triggeredBy:'rotationDevice', value: decrease(acc.value) }
         
-    }, {triggeredBy:'init', value:0})
+    }, {triggeredBy:'init', value:0}),
+    share()
 )
 
 module.exports.currenttBrigthnessStream =  currenttBrigthnessStream
