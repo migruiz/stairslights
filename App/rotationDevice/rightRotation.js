@@ -24,7 +24,7 @@ var mqtt = require('../mqttCluster.js');
     
     
     const timeoutStream = signalStartIncreaseSensorStream.pipe(
-        debounceTime(5 * 1000),
+        debounceTime(1 * 1000),
         mapTo({action:'rotate_stop'}),
         )
     
