@@ -1,8 +1,7 @@
 const { Observable,merge,timer, interval, of } = require('rxjs');
 const { mergeMap, first, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy, concatMap} = require('rxjs/operators');
-var mqtt = require('./mqttCluster.js');
-const CronJob = require('cron').CronJob;
-const { getRotationDeviceStream } = require('./rotationDevice/rotationDevice');
+
+const { currenttBrigthnessStream } = require('./currentBrigthnessStream');
 
 global.mtqqLocalPath = 'mqtt://192.168.0.11'
 const GROUND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d000566c0cc'
@@ -10,11 +9,9 @@ const FIRST_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0005827a38'
 const SECOND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0007c48250'
 
 const KEEPLIGHTONFORSECS = parseInt(62 * 1000)
-const STARTFULLBRIGHTNESSATHOURS = parseInt(7)
-const ENDFULLBRIGHTNESSATHOURS = parseInt(20)
 
-const NIGHTBRIGHTNESS = parseInt(1)
-const DAYBRIGHTNESS = parseInt(6)
+
+
 
 
 /*
@@ -47,7 +44,7 @@ console.log(`starting stairs lights current time ${new Date()}`)
 
 currenttBrigthnessStream
 .subscribe(async m => {
-    console.log('Downstairs', m);
+    console.log('current', m);
     //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
 })
 

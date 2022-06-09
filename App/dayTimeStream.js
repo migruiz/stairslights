@@ -1,5 +1,11 @@
-const { Observable,merge,timer, interval, of } = require('rxjs');
+const { Observable,merge } = require('rxjs');
 const { map } = require('rxjs/operators');
+const CronJob = require('cron').CronJob;
+
+const STARTFULLBRIGHTNESSATHOURS = parseInt(7)
+const ENDFULLBRIGHTNESSATHOURS = parseInt(20)
+const NIGHTBRIGHTNESS = parseInt(1)
+const DAYBRIGHTNESS = parseInt(6)
 
 const nightNotificationStream =  new Observable(subscriber => {      
     new CronJob(
@@ -26,10 +32,12 @@ const dayNotificationStream =  new Observable(subscriber => {
 
 const dayTimeStream = merge(nightNotificationStream,dayNotificationStream).pipe(
     map( (m) => {
-        if (m.action==='night_time') return { action:'date_time', value: 1}
-        if (m.action==='day_time') return { action:'date_time', value: 6}
+        if (m.action==='night_time') return { action:'date_time', value: NIGHTBRIGHTNESS}
+        if (m.action==='day_time') return { action:'date_time', value: DAYBRIGHTNESS}
         }
     )
 )
+const getDefaultBrightness = () => (new Date().getHours() > STARTFULLBRIGHTNESSATHOURS && new Date().getHours() < ENDFULLBRIGHTNESSATHOURS)? DAYBRIGHTNESS : NIGHTBRIGHTNESS
 
 module.exports.dayTimeStream =  dayTimeStream
+module.exports.getDefaultBrightness =  getDefaultBrightness
