@@ -9,7 +9,7 @@ const { getLeftRotationStream } =  require('./leftRotation')
 
 
 
-  module.exports.getRotationDeviceStream = function(topic) {    
+  module.exports.getRawRotationDeviceStream = function(topic) {    
     
    
     const rotationSensor = new Observable(async subscriber => {  
@@ -36,5 +36,27 @@ const { getLeftRotationStream } =  require('./leftRotation')
 
 
     return merge(increaseStream,decreaseStream,toggleStream);
+
+}
+
+module.exports.getDeviceStream = function({currentBrigthnessStream}) {    
+    
+  const sharedDeviceStream = currentBrigthnessStream.pipe(
+    filter(m => m.triggeredBy==='rotationDevice'),    
+    map(m =>  ({type:'manual_on', value:m.value})),
+    share()
+    )
+
+
+
+const turnOffDeviceStream = sharedDeviceStream.pipe(
+    debounceTime(60*1000),
+    mapTo({type:'manual_off', value:0}),
+    )
+
+
+const deviceStream = merge(sharedDeviceStream,turnOffDeviceStream)
+
+return deviceStream;
 
 }

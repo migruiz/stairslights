@@ -2,11 +2,11 @@ const { Observable,merge,timer, interval, of } = require('rxjs');
 const { mergeMap, first, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy, concatMap} = require('rxjs/operators');
 
 
-const { getRotationDeviceStream } = require('./rotationDevice/rotationDevice');
+const { getRawRotationDeviceStream } = require('./rotationDevice/rotationDevice');
 const { dayTimeStream, getDefaultBrightness }= require('./dayTimeStream')
 
-const downstairsRotationDeviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c4314fffeb064fb')
-const upstairsRotationDeviceStream = getRotationDeviceStream('zigbee2mqtt/0x0c4314fffef7f65a')
+const downstairsRotationDeviceStream = getRawRotationDeviceStream('zigbee2mqtt/0x0c4314fffeb064fb')
+const upstairsRotationDeviceStream = getRawRotationDeviceStream('zigbee2mqtt/0x0c4314fffef7f65a')
 
 
 const increase = (acc)=>{
@@ -29,7 +29,7 @@ const decrease = (acc)=>{
 
 
 
-const currenttBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayTimeStream).pipe(
+const currentBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayTimeStream).pipe(
     scan((acc, curr) => {
         if (curr.action==='date_time') return {triggeredBy:'timeOfDay', value:curr.value}
         if (curr.action==='play_pause') return {triggeredBy:'rotationDevice', value:(acc.value==0 ? getDefaultBrightness() : 0)}
@@ -39,7 +39,7 @@ const currenttBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRo
     }, {triggeredBy:'init', value:0}),
     share()
 )
-const lastEmissionBrightnessStream = currenttBrigthnessStream.pipe(shareReplay(1))
+const lastEmissionBrightnessStream = currentBrigthnessStream.pipe(shareReplay(1))
 
-module.exports.currenttBrigthnessStream =  currenttBrigthnessStream
+module.exports.currentBrigthnessStream =  currentBrigthnessStream
 module.exports.lastEmissionBrightnessStream =  lastEmissionBrightnessStream
