@@ -1,14 +1,11 @@
 const { Observable,merge,timer, interval, of } = require('rxjs');
 const { mergeMap, first, withLatestFrom, map,share,shareReplay, filter,mapTo,take,debounceTime,throttle,throttleTime, startWith, takeWhile, delay, scan, distinct,distinctUntilChanged, tap, flatMap, takeUntil, toArray, groupBy, concatMap} = require('rxjs/operators');
 
-const { currenttBrigthnessStream } = require('./currentBrigthnessStream');
+const { currenttBrigthnessStream, lastEmissionBrightnessStream } = require('./currentBrigthnessStream');
+const { getDownstairsStream, getUpstairsStream }  = require('./stairsSensor')
 
 global.mtqqLocalPath = 'mqtt://192.168.0.11'
-const GROUND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d000566c0cc'
-const FIRST_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0005827a38'
-const SECOND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0007c48250'
 
-const KEEPLIGHTONFORSECS = parseInt(62 * 1000)
 
 
 
@@ -51,7 +48,8 @@ const turnOffDeviceStream = sharedDeviceStream.pipe(
 
 
 
-
+const downstairsStream = getDownstairsStream({lastEmissionBrightnessStream})
+const upstairsStream = getDownstairsStream({lastEmissionBrightnessStream})
 
 
 currenttBrigthnessStream

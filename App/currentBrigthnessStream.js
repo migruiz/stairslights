@@ -39,5 +39,7 @@ const currenttBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRo
     }, {triggeredBy:'init', value:0}),
     share()
 )
+const lastEmissionBrightnessStream = currenttBrigthnessStream.pipe(shareReplay(1))
 
 module.exports.currenttBrigthnessStream =  currenttBrigthnessStream
+module.exports.lastEmissionBrightnessStream =  lastEmissionBrightnessStream
