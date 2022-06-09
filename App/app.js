@@ -1,5 +1,5 @@
 const { share } = require('rxjs/operators');
-
+var mqtt = require('./mqttCluster.js');
 const { currentBrigthnessStream, lastEmissionBrightnessStream } = require('./currentBrigthnessStream');
 const { getDownstairsStream, getUpstairsStream }  = require('./stairsSensor')
 const { getDeviceStream } = require ('./rotationDevice/rotationDevice')
@@ -14,17 +14,17 @@ console.log(`starting stairs lights current time ${new Date()}`)
 
 
 
+
 const downstairsStream = getDownstairsStream({lastEmissionBrightnessStream})
 const upstairsStream = getUpstairsStream({lastEmissionBrightnessStream})
 const deviceStream = getDeviceStream({currentBrigthnessStream})
 const sharedDeviceStream = deviceStream.pipe(share())
 
-
 getLightsStream({stairsStream:downstairsStream, deviceStream:sharedDeviceStream}).subscribe(async m => {
     console.log('down', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
+    (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
 })
 getLightsStream({stairsStream:upstairsStream, deviceStream:sharedDeviceStream}).subscribe(async m => {
     console.log('up', m);
-    //(await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
+    (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
 })
