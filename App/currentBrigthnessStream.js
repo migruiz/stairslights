@@ -29,14 +29,15 @@ const decrease = (acc)=>{
 
 
 
-const currentBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayTimeStream).pipe(
+const currentBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayTimeStream, of({action:'init'}).pipe(delay(2000))).pipe(
     scan((acc, curr) => {
         if (curr.action==='date_time') return {triggeredBy:'timeOfDay', value:curr.value}
         if (curr.action==='play_pause') return {triggeredBy:'rotationDevice', value:(acc.value==0 ? getDefaultBrightness() : 0)}
         if (curr.action==='rotate_right') return {triggeredBy:'rotationDevice', value: increase(acc.value) }
         if (curr.action==='rotate_left') return {triggeredBy:'rotationDevice', value: decrease(acc.value) }
+        if (curr.action==='init') return {triggeredBy:'init', value: 100 }
         
-    }, {triggeredBy:'init', value:0}),
+    }, {triggeredBy:'init', value:50}),    
     share()
 )
 const lastEmissionBrightnessStream = currentBrigthnessStream.pipe(shareReplay(1))
