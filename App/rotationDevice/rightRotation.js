@@ -1,5 +1,5 @@
-const { Observable,merge, interval } = require('rxjs');
-const {  map,share, filter,mapTo,debounceTime,distinctUntilChanged, flatMap, startWith , takeUntil, scan} = require('rxjs/operators');
+const { Observable,merge, interval, of } = require('rxjs');
+const {  map,share, filter,mapTo,debounceTime,distinctUntilChanged, flatMap, startWith , takeUntil, scan, delay, first} = require('rxjs/operators');
 var mqtt = require('../mqttCluster.js');
 
 
@@ -48,7 +48,7 @@ var mqtt = require('../mqttCluster.js');
         flatMap( m => interval(30).pipe(
     
             startWith(1),
-            takeUntil(stopStream),
+            takeUntil(merge(stopStream, of(1).pipe(delay(3000))).pipe(first())),
             mapTo(m)
         )));
 
