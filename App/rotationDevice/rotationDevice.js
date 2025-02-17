@@ -50,7 +50,7 @@ module.exports.getDeviceStream = function({currentBrigthnessStream}) {
 
 
 const turnOffDeviceStream = sharedDeviceStream.pipe(
-    debounceTime(60*1000),
+    debounceTime(90*1000),
     mapTo({type:'manual_off', value:0}),
     )
 

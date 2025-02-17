@@ -5,7 +5,7 @@ const GROUND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d000566c0cc'
 const FIRST_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0005827a38'
 const SECOND_FLOOR_SENSOR_TOPIC = 'zigbee2mqtt/0x00158d0007c48250'
 
-const KEEPLIGHTONFORSECS = parseInt(62 * 1000)
+const KEEPLIGHTONFORSECS = parseInt(90 * 1000)
 
 const groundfloorSensorStream = new Observable(async subscriber => {  
     var mqttCluster=await mqtt.getClusterAsync()   

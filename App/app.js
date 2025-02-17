@@ -21,10 +21,10 @@ const deviceStream = getDeviceStream({currentBrigthnessStream})
 const sharedDeviceStream = deviceStream.pipe(share())
 
 getLightsStream({stairsStream:downstairsStream, deviceStream:sharedDeviceStream}).subscribe(async m => {
-    console.log('down', m);
+    //console.log('down', m);
     (await mqtt.getClusterAsync()).publishMessage('stairs/down/light',`${m.value}`)
 })
 getLightsStream({stairsStream:upstairsStream, deviceStream:sharedDeviceStream}).subscribe(async m => {
-    console.log('up', m);
+    //console.log('up', m);
     (await mqtt.getClusterAsync()).publishMessage('stairs/up/light',`${m.value}`)
 })
