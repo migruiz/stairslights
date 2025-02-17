@@ -13,19 +13,19 @@ var mqtt = require('../mqttCluster.js');
     
     
     const signalStartIncreaseSensorStream  = sharedRotationSensor.pipe(
-        filter ( m => m.action === 'rotate_right'),
+        filter ( m => m.action === 'brightness_move_up'),
         share()
     )
     
     const signalStopIncreaseSensorStream = sharedRotationSensor.pipe(
-        filter ( m => m.action!=='rotate_right'),
-        mapTo({action:'rotate_stop'})
+        filter ( m => m.action!=='brightness_move_up'),
+        mapTo({action:'brightness_stop'})
     )
     
     
     const timeoutStream = signalStartIncreaseSensorStream.pipe(
         debounceTime(1 * 1000),
-        mapTo({action:'rotate_stop'}),
+        mapTo({action:'brightness_stop'}),
         )
     
     const turnOffStream = merge(timeoutStream,signalStopIncreaseSensorStream).pipe(   
@@ -38,10 +38,10 @@ var mqtt = require('../mqttCluster.js');
         distinctUntilChanged((prev, curr) => prev.action === curr.action)
     )
     const startStrean = startStopStream.pipe(
-        filter(m=>m.action==='rotate_right'),        
+        filter(m=>m.action==='brightness_move_up'),        
     )
     const stopStream = startStopStream.pipe(
-        filter(m=>m.action==='rotate_stop')
+        filter(m=>m.action==='brightness_stop')
     )
 
     const increaseStream = startStrean.pipe(

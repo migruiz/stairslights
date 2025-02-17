@@ -22,15 +22,15 @@ const { getLeftRotationStream } =  require('./leftRotation')
   
   
     const sharedRotationSensor = rotationSensor.pipe(
-        filter( m => m.content.action==='rotate_right' ||  m.content.action==='rotate_left' || m.content.action==='rotate_stop'  || m.content.action==='play_pause'),
-        map( m => ({action: m.content.action})),
+        filter( m => m.content.action==='brightness_move_up' ||  m.content.action==='brightness_move_down' || m.content.action==='brightness_stop'  || m.content.action==='toggle'),
+        map( m => ({action: m.content.action, type:'ikea'})),
         share()
     )
 
     const increaseStream = getRightRotationStream(sharedRotationSensor)
     const decreaseStream = getLeftRotationStream(sharedRotationSensor)
     const toggleStream =  sharedRotationSensor.pipe(
-      filter(m => m.action==='play_pause')
+      filter(m => m.action==='toggle')
     )
 
 
