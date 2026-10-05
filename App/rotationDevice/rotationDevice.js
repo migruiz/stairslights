@@ -42,7 +42,8 @@ const { getLeftRotationStream } =  require('./leftRotation')
 module.exports.getDeviceStream = function({currentBrigthnessStream}) {    
     
   const sharedDeviceStream = currentBrigthnessStream.pipe(
-    filter(m => m.triggeredBy==='rotationDevice'),    
+    // A knob, or the iPad's slider doing what a knob does.
+    filter(m => m.triggeredBy==='rotationDevice' || m.triggeredBy==='screen'),
     map(m =>  ({type:'manual_on', value:m.value})),
     share()
     )
