@@ -1,7 +1,7 @@
 const { share } = require('rxjs/operators');
 var mqtt = require('./mqttCluster.js');
 var http = require('http');
-const { currentBrigthnessStream, lastEmissionBrightnessStream, screenBrightness } = require('./currentBrigthnessStream');
+const { currentBrigthnessStream, lastEmissionBrightnessStream, screenBrightness, MAX_BRIGHTNESS } = require('./currentBrigthnessStream');
 const { getDownstairsStream, getUpstairsStream }  = require('./stairsSensor')
 const { getDeviceStream } = require ('./rotationDevice/rotationDevice')
 const { getLightsStream } = require('./lighStream')
@@ -42,9 +42,10 @@ getLightsStream({stairsStream:upstairsStream, deviceStream:sharedDeviceStream}).
 })
 
 
-// What the screen shows: the level, and what each flight is showing right now (0 when off).
+// What the screen shows: the level, what each flight is showing right now (0 when off), and
+// the highest level it can set, where its slider stops.
 function screenState() {
-  return { brightness: level, down, up }
+  return { brightness: level, down, up, max: MAX_BRIGHTNESS }
 }
 
 http.createServer((req, res) => {
@@ -66,7 +67,8 @@ http.createServer((req, res) => {
     console.log(`${new Date().toISOString()} screen brightness ${brightness}`);
     // Like a turn of a knob: both flights at this level now, off 90 seconds later unless
     // someone is moving, and the level motion lights them at from then on. 0 is off, and
-    // motion won't light them until the level goes up again (or 7am/8pm sets it).
+    // motion won't light them until the level goes up again (or 7am/8pm sets it). Above
+    // MAX_BRIGHTNESS is taken as MAX_BRIGHTNESS, so an older screen asking for 1000 still works.
     screenBrightness.next(brightness);
     reply(200, screenState());
   });

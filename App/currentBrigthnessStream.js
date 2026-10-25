@@ -14,13 +14,17 @@ const downstairsTuyaRotationDeviceStream = getRawTuyaRotationDeviceStream('zigbe
 const screenBrightness = new Subject()
 const screenStream = screenBrightness.pipe(map(value => ({action:'screen', value})))
 
+// The most the strips are ever sent: 75% of their full 1000, which was too bright
+// (25/10/2026). The knobs stop here, and anything higher from a screen is taken as this.
+const MAX_BRIGHTNESS = 750
+
 
 const increaseTuya = (acc)=>{
     if (acc < 10){
         return  acc + 4;
     }
     else {
-        return acc + 200 > 1000 ? 1000 : acc + 200;
+        return acc + 200 > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : acc + 200;
     }
 }
 const decreaseTuya = (acc)=>{
@@ -39,7 +43,7 @@ const increaseIkea = (acc)=>{
         return  acc + 1;
     }
     else {
-        return acc + 40 > 1000 ? 1000 : acc + 40;
+        return acc + 40 > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : acc + 40;
     }
 }
 const decreaseIkea = (acc)=>{
@@ -56,8 +60,7 @@ const decreaseIkea = (acc)=>{
 
 
 
-const currentBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayTimeStream,downstairsTuyaRotationDeviceStream,screenStream, of({action:'init'}).pipe(delay(2000))).pipe(
-    scan((acc, curr) => {
+const nextBrightness = (acc, curr) => {
         if (curr.action==='screen') return {triggeredBy:'screen', value: curr.value}
         if (curr.action==='date_time') return {triggeredBy:'timeOfDay', value:curr.value}
         if (curr.action==='toggle') return {triggeredBy:'rotationDevice', value:(acc.value==0 ? getDefaultBrightness() : 0)}
@@ -67,8 +70,15 @@ const currentBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRot
         if (curr.action==='rotate_right' && curr.type==='tuya') return {triggeredBy:'rotationDevice', value: increaseTuya(acc.value) }
         if (curr.action==='rotate_left' && curr.type==='tuya') return {triggeredBy:'rotationDevice', value: decreaseTuya(acc.value) }
         if (curr.action==='init') return {triggeredBy:'init', value: 100 }
-        
-    }, {triggeredBy:'init', value:50}),    
+}
+
+const currentBrigthnessStream = merge(downstairsRotationDeviceStream,upstairsRotationDeviceStream,dayTimeStream,downstairsTuyaRotationDeviceStream,screenStream, of({action:'init'}).pipe(delay(2000))).pipe(
+    scan((acc, curr) => {
+        const next = nextBrightness(acc, curr)
+        if (!next) return acc
+        // Whatever set it, never above MAX_BRIGHTNESS.
+        return Object.assign({}, next, { value: Math.min(next.value, MAX_BRIGHTNESS) })
+    }, {triggeredBy:'init', value:50}),
     share()
 )
 const lastEmissionBrightnessStream = currentBrigthnessStream.pipe(shareReplay(1))
@@ -76,3 +86,4 @@ const lastEmissionBrightnessStream = currentBrigthnessStream.pipe(shareReplay(1)
 module.exports.currentBrigthnessStream =  currentBrigthnessStream
 module.exports.lastEmissionBrightnessStream =  lastEmissionBrightnessStream
 module.exports.screenBrightness =  screenBrightness
+module.exports.MAX_BRIGHTNESS =  MAX_BRIGHTNESS
