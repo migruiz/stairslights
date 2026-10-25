@@ -14,10 +14,10 @@ const downstairsTuyaRotationDeviceStream = getRawTuyaRotationDeviceStream('zigbe
 const screenBrightness = new Subject()
 const screenStream = screenBrightness.pipe(map(value => ({action:'screen', value})))
 
-// The most the strips are ever sent: 216, where the lights screen's slider shows 60%. Miguel
+// The most the strips are ever sent: 125, where the lights screen's slider shows 50%. Miguel
 // found anything brighter too bright (25/10/2026). The knobs stop here, and anything higher
 // from a screen is taken as this.
-const MAX_BRIGHTNESS = 216
+const MAX_BRIGHTNESS = 125
 
 
 const increaseTuya = (acc)=>{
