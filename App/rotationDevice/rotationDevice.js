@@ -39,7 +39,7 @@ const { getLeftRotationStream } =  require('./leftRotation')
 
 }
 
-// IKEA BILRESA two-button remote (E2489), on the stairs as a test since 26/10/2026. Holding a
+// IKEA BILRESA two-button remote (E2489), on the stairs since 26/10/2026. Holding a
 // button sends brightness_move_up or brightness_move_down, then brightness_stop on release,
 // which is what the IKEA knobs send when turned. A short press sends on or off.
 module.exports.getRawIkeaButtonsStream = function(topic) {
@@ -60,6 +60,48 @@ module.exports.getRawIkeaButtonsStream = function(topic) {
   )
 
   return merge(getRightRotationStream(sharedRemote), getLeftRotationStream(sharedRemote), pressStream);
+}
+
+// IKEA BILRESA scroll wheel (E2490), on the stairs since 27/10/2026. Turning it sends
+// brightness_move_to_level with action_level: the wheel's own position, 1 to 255, which knows
+// nothing of the stairs' level. So only which way it moved counts, and by how many clicks: a
+// click is 14, a fast turn sends a few clicks at once, and at either end it keeps sending 255
+// (or 1) while you carry on turning. Each turn comes out as wheel_up or wheel_down with its
+// clicks. A press sends on and off in turn, whatever the stairs are doing, so either one is
+// taken as a knob press (toggle).
+module.exports.getRawIkeaWheelStream = function(topic) {
+  const remote = new Observable(async subscriber => {
+    var mqttCluster = await mqtt.getClusterAsync()
+    mqttCluster.subscribeData(topic, function(content){
+      subscriber.next({content})
+    });
+  });
+  const sharedRemote = remote.pipe(share())
+
+  const CLICK = 14
+  const turnStream = sharedRemote.pipe(
+    filter(m => m.content.action === 'brightness_move_to_level' && Number.isInteger(m.content.action_level)),
+    scan((acc, m) => {
+      const position = m.content.action_level
+      const was = acc.position
+      let direction = null
+      if (was !== null && position > was) direction = 'up'
+      else if (was !== null && position < was) direction = 'down'
+      else if (position >= 254) direction = 'up'    // still turning past the top end
+      else if (position <= 1) direction = 'down'    // still turning past the bottom end
+      // (After a restart the first turn in the middle only tells where the wheel is.)
+      const clicks = (was === null || position === was) ? 1 : Math.min(4, Math.max(1, Math.round(Math.abs(position - was) / CLICK)))
+      return { position, direction, clicks }
+    }, { position: null }),
+    filter(m => m.direction !== null),
+    map(m => ({ action: m.direction === 'up' ? 'wheel_up' : 'wheel_down', clicks: m.clicks }))
+  )
+  const pressStream = sharedRemote.pipe(
+    filter(m => m.content.action === 'on' || m.content.action === 'off'),
+    mapTo({ action: 'toggle' })
+  )
+
+  return merge(turnStream, pressStream);
 }
 
 module.exports.getDeviceStream = function({currentBrigthnessStream}) {
