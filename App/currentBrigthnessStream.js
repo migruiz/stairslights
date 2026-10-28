@@ -12,12 +12,12 @@ const downstairsTuyaRotationDeviceStream = getRawTuyaRotationDeviceStream('zigbe
 // The IKEA BILRESA two-button remote (since 26/10/2026): hold a button to brighten or dim
 // like turning a knob; press I to light the stairs, O to turn them off.
 const buttonsRemoteStream = getRawIkeaButtonsStream('zigbee2mqtt/0x6cd8fb0000086c6e')
-// The IKEA BILRESA scroll wheels (the first since 27/10/2026, the second since 28/10): each
-// click brightens or dims one step (WHEEL_STEPS); a press does what a knob press does. Each
-// wheel keeps track of its own position.
+// The IKEA BILRESA scroll wheels (the first since 27/10/2026, the second since 28/10, which
+// replaced 0x1035970000a7952a the same day): each click brightens or dims one step
+// (WHEEL_STEPS); a press does what a knob press does. Each wheel keeps track of its own position.
 const wheelRemoteStream = merge(
     getRawIkeaWheelStream('zigbee2mqtt/0x6cd8fb00000c1d6c'),
-    getRawIkeaWheelStream('zigbee2mqtt/0x1035970000a7952a')
+    getRawIkeaWheelStream('zigbee2mqtt/0x1035970000a8fdfe')
 )
 // The kitchen iPad's stairs slider (app.js): a brightness from 0 (off) to 1000, which does
 // what a turn of either knob does.
